@@ -14,6 +14,8 @@ This project integrates FastMCP (Model Context Protocol) into a Django ASGI appl
 
 Ideal for setups combining Django admin/UX with real-time tool APIs using the MCP Inspector.
 
+- test admin user: demo / demo
+
 ## 📦 Project Structure
 
 ```

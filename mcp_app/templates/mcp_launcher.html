@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MCP Inspector Launcher</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-5">
+  <h1 class="mb-4">MCP Inspector Launcher</h1>
+
+  {% if not auth_url %}
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li>{{ field.label }}: {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">{{ form.client_id.label_tag }}{{ form.client_id }}</div>
+      <div class="mb-3">{{ form.client_secret.label_tag }}{{ form.client_secret }}</div>
+      <div class="mb-3">{{ form.mcp_service_username.label_tag }}{{ form.mcp_service_username }}</div>
+      <button type="submit" name="start_auth" class="btn btn-primary">Start Authorization</button>
+    </form>
+  {% endif %}
+
+  {% if auth_url %}
+    <div class="alert alert-info">
+      <p>Authorization window opened. After you log in and consent, copy the <code>code</code> from the callback URL below and paste it in Step 2.</p>
+    </div>
+    <hr>
+    <h3>Step 2: Paste authorization code</h3>
+    <form method="post" action="{% url 'mcp_finalize' %}">
+      {% csrf_token %}
+      <div class="mb-3">{{ code_form.code.label_tag }}{{ code_form.code }}</div>
+      <button type="submit" class="btn btn-success mt-2">Launch Inspector</button>
+    </form>
+
+    <script type="text/javascript">
+      // Open OAuth authorize URL in a new tab
+      window.setTimeout(function() {
+        window.open("{{ auth_url|escapejs }}", "_blank");
+      }, 100);
+    </script>
+  {% endif %}
+
+  {% if error %}
+    <div class="alert alert-danger mt-3">{{ error }}</div>
+  {% endif %}
+</body>
+</html>

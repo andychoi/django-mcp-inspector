@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Home - MCP Demo{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="mb-4">Welcome to the MCP Demo</h1>
+    <a href="{% url 'mcp_launcher' %}" class="btn btn-primary">Launch MCP Inspector</a>
+</div>
+{% endblock %}
