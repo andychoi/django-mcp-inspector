@@ -1,5 +1,5 @@
 
-# Django + FastMCP Integration
+# Django + FastMCP + MCP Inspector
 
 This project integrates FastMCP with a Django ASGI application, supporting both OAuth2 Bearer token and session-based authentication.
 
