@@ -1,0 +1,3 @@
+django
+django-oauth-toolkit
+fastmcp~=2.8.0

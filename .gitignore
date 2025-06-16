@@ -1,0 +1,98 @@
+# Python compiled byte code
+*.pyc
+*.pyo
+__pycache__
+
+node_modules
+
+# SQLite3 database
+*.sqlite3
+db.json
+.data/
+*.journal
+
+faiss_index.index
+
+# Staticfiles
+staticfiles/
+
+# Compiled messages
+*.mo
+
+# Log files
+*.log
+*.log.*
+.sent_mails/*
+
+# cert
+*.pem
+
+# IDE files
+.vscode/
+.idea
+*.iml
+*.ipr
+*.iws
+.settings
+.project
+.pydevproject
+.directory
+
+# Script for different environments
+prod.sh
+dev.sh
+run.sh
+
+# Static files collected
+/static
+
+# Virtual environments
+venv*/
+.venv*/
+
+# environment setting file
+/.env
+/.sapcfg.json
+db.json
+
+/.jupyter
+/jupyter
+/htmlcov
+
+# runtime
+run/
+tmp/
+sent_emails/
+backup/
+
+# file upload folder
+media/
+media-private/
+
+#https://stackoverflow.com/questions/47307305/how-to-add-all-of-the-migrations-to-git-gitignore-file-in-django
+# **/migrations/**
+# !**/migrations
+# !**/migrations/__init__.py
+# apps/wflow/migrations/*
+
+# gunicorn pid file
+*.pid
+
+# SAP trace
+*.trc
+
+# Others
+*.bak 
+*.backup
+dev_log_ex.txt
+
+#dbbackup
+*.bin
+*.dump
+media
+
+.DS_store
+
+*.out
+*.prof
+startup_profile.html
