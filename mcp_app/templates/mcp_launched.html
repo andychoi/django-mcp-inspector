@@ -8,9 +8,20 @@
 <body class="container py-5">
   <div class="alert alert-success">
     <h2>MCP Inspector Launched!</h2>
-    <p>If it did not open automatically, <a href="{{ inspector_ui }}?MCP_PROXY_AUTH_TOKEN={{ proxy_token }}" target="_blank">
-  click here to open the Inspector
-</a>.</p>
+    <p>
+      <strong>Bearer Token:</strong> <code>{{ bearer_token }}</code><br>
+      <strong>Proxy Token:</strong> <code>{{ proxy_token }}</code>
+    </p>
+    <hr>
+    <p>
+      <a href="{{ inspector_ui }}?MCP_PROXY_AUTH_TOKEN={{ proxy_token }}" target="_blank">
+        Open the Inspector UI
+      </a>
+    </p>
+    <p>
+      Ensure to enter URL: <strong>http://127.0.0.1:8000/mcp/</strong> in MCP inspector, not localhost<br>
+      Enter Bearer Token to MCP inspector, no need to enter Authorization header
+    </p>
   </div>
 </body>
 </html>

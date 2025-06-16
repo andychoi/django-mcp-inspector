@@ -170,6 +170,7 @@ def mcp_finalize(request):
         # 3) Render the “launched” page with that token embedded in the link
         return render(request, "mcp_launched.html", {
             "inspector_ui": INSPECTOR_UI,      # e.g. http://127.0.0.1:6274/
-            "proxy_token":  proxy_token,       # the hex string you just captured
+            'bearer_token': token,
+            'proxy_token': proxy_token,
         })
 
