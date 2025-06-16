@@ -1,6 +1,6 @@
-djproject
+# django mcp inspector
 
-A Django + FastMCP starter project integrating OAuth2 authentication (via django-oauth-toolkit) with a FastMCP server mounted alongside your Django app under Starlette.
+A Django + FastMCP starter project integrating OAuth2 authentication (via django‑oauth‑toolkit) with a FastMCP server mounted alongside your Django app under Starlette.
 
 Features
 	•	Django Core: Standard Django 5.2 project structure with custom users.User model.
