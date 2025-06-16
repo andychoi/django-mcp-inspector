@@ -6,11 +6,11 @@ This project integrates FastMCP with a Django ASGI application, supporting both 
 This project integrates FastMCP (Model Context Protocol) into a Django ASGI application. It enables secure, streamable, and authenticated communication between Node.js-based MCP Inspector tools and Django-backed FastMCP tools.
 
 ✅ Features:
-	•	OAuth2 and Session-based Authentication via Django OAuth Toolkit
-	•	Proxy token support for MCP Inspector relay sessions
-	•	Streamable HTTP transport support for MCP client communication
-	•	Metadata endpoints for OAuth discovery
-	•	Pluggable middleware for hybrid Bearer+Session auth
+ - OAuth2 and Session-based Authentication via Django OAuth Toolkit
+ - Proxy token support for MCP Inspector relay sessions
+ - Streamable HTTP transport support for MCP client communication
+ - Metadata endpoints for OAuth discovery
+ - Pluggable middleware for hybrid Bearer+Session auth
 
 Ideal for setups combining Django admin/UX with real-time tool APIs using the MCP Inspector.
 
