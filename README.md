@@ -1,109 +1,123 @@
-# django mcp inspector
 
-A Django + FastMCP starter project integrating OAuth2 authentication (via django‑oauth‑toolkit) with a FastMCP server mounted alongside your Django app under Starlette.
+# Django + FastMCP Integration
 
-Features
-	•	Django Core: Standard Django 5.2 project structure with custom users.User model.
-	•	OAuth2: Full Authorization Code + PKCE flow powered by django-oauth-toolkit.
-	•	FastMCP: Exposes an MCP endpoint (/mcp/) alongside Django, with tools registered via the FastMCP SDK.
-	•	Combined Authentication: CombinedAuthMiddleware automatically checks for Authorization: Bearer <token> (DOT) or falls back to Django session cookies.
-	•	Management Commands:
-	•	mcp_inspect: Walks you through PKCE flow and launches the MCP Inspector UI + proxy.
-	•	mcp_oauth_admin: Bootstraps an admin user + DOT application.
-	•	run_mcp: Runs the FastMCP server over stdio (for CLI/desktop clients).
-	•	MCP Client Demo: Example Python script showing how to call MCP tools via fastmcp.Client.
-	•	Search Registry: Sample registry mapping Django models (projects, users) to MCP search tools.
+This project integrates FastMCP with a Django ASGI application, supporting both OAuth2 Bearer token and session-based authentication.
 
-Prerequisites
-	•	Python 3.10+
-	•	Node.js & npm (for npx @modelcontextprotocol/inspector)
-	•	SQLite (default) or your choice of Django-supported database
+This project integrates FastMCP (Model Context Protocol) into a Django ASGI application. It enables secure, streamable, and authenticated communication between Node.js-based MCP Inspector tools and Django-backed FastMCP tools.
 
-Installation
-	1.	Clone the repo:
+✅ Features:
+	•	OAuth2 and Session-based Authentication via Django OAuth Toolkit
+	•	Proxy token support for MCP Inspector relay sessions
+	•	Streamable HTTP transport support for MCP client communication
+	•	Metadata endpoints for OAuth discovery
+	•	Pluggable middleware for hybrid Bearer+Session auth
 
-git clone <repo-url> djproject
-cd djproject
+Ideal for setups combining Django admin/UX with real-time tool APIs using the MCP Inspector.
 
+## 📦 Project Structure
 
-	2.	Install Python dependencies:
+```
+.
+├── djproject/
+│   ├── settings.py
+│   └── asgi.py  ← Mounts MCP app
+├── mcp_app/
+│   ├── auth_middleware.py
+│   └── mcp_server.py
+├── manage.py
+└── requirements.txt
+```
 
-python -m venv venv
-source venv/bin/activate
+## ⚙️ Setup Instructions
+
+### 1. Install Requirements
+
+```bash
 pip install -r requirements.txt
+```
 
+Ensure `django`, `django-oauth-toolkit`, and `fastmcp` are included.
 
-	3.	Apply migrations:
+### 2. Django Settings
 
-python manage.py migrate
+Ensure your `INSTALLED_APPS` includes:
 
+```python
+"oauth2_provider",
+"mcp_app",
+```
 
-	4.	Collect static files:
+### 3. Configure ASGI in `asgi.py`
 
-python manage.py collectstatic --no-input
+```python
+from starlette.applications import Starlette
+from starlette.routing import Mount, Route
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware import Middleware
+from starlette.staticfiles import StaticFiles
+from django.core.asgi import get_asgi_application
+from pathlib import Path
+from django.conf import settings
 
+from mcp_app.mcp_server import djmcp as mcp_instance
+from mcp_app.auth_middleware import CombinedAuthMiddleware
+from mcp_app.metadata import oauth_authorization_server, oauth_protected_resource
 
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djproject.settings")
 
-Configuration
-	•	Edit djproject/settings.py for database, allowed hosts, and OAuth2 settings.
-	•	Ensure OAUTH2_PROVIDER settings (e.g. ACCESS_TOKEN_EXPIRE_SECONDS) are configured if you need custom expiration.
+django_application = get_asgi_application()
 
-Running the Server
+middleware = [
+    Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]),
+    Middleware(CombinedAuthMiddleware),
+]
 
-Start Django + FastMCP via ASGI:
+mcp_asgi_app = mcp_instance.http_app(path="/", middleware=middleware)
 
-uvicorn djproject.asgi:application --host 127.0.0.1 --port 8000
+application = Starlette(
+    routes=[
+        Route("/.well-known/oauth-authorization-server", oauth_authorization_server, methods=["GET", "OPTIONS"]),
+        Route("/.well-known/oauth-protected-resource", oauth_protected_resource, methods=["GET", "OPTIONS"]),
+        Mount("/mcp", mcp_asgi_app),
+        Mount("/", django_application),
+    ],
+    lifespan=mcp_asgi_app.lifespan
+)
 
-This serves:
-	•	http://127.0.0.1:8000/ → Django app
-	•	http://127.0.0.1:8000/o/ → OAuth2 endpoints
-	•	http://127.0.0.1:8000/mcp/ → FastMCP tools endpoint
+if settings.STATIC_ROOT and Path(settings.STATIC_ROOT).exists():
+    application.routes.insert(
+        2,
+        Mount("/static", StaticFiles(directory=settings.STATIC_ROOT), name="static")
+    )
+```
 
-Launching the MCP Inspector
+## 🔐 Combined Authentication Middleware
 
-The mcp_inspect command will guide you through creating a DOT application (if needed), running the PKCE flow, and launching the Inspector UI + proxy:
+Located at `mcp_app/auth_middleware.py`.
 
-python manage.py mcp_inspect
+- Checks `Authorization: Bearer ...` and verifies using DOT
+- Falls back to Django `sessionid` cookie
+- Accepts `x-mcp-proxy-session-token` for trusted proxy-forwarded requests
 
-Follow the printed 🔗 Open inspector... link to connect to the UI. Hit Ping to verify connectivity.
+## 🛠️ Example MCP Tool
 
-Bootstrapping OAuth2 Admin
+```python
+from fastmcp import FastMCP
 
-If you only need to set up the admin user + DOT app without launching the Inspector:
+djmcp = FastMCP(name="django_mcp")
 
-python manage.py mcp_oauth_admin
+@djmcp.tool
+def echo(message: str) -> str:
+    return f'{{"Echo": "{message}"}}'
+```
 
-MCP Client Demo
+## 🧪 Debugging Tips
 
-A standalone Python script demonstrating basic MCP usage:
+- Ensure `is_valid()` from DOT is used without params.
+- Middleware logs errors with `logger.error(...)` if response fails.
+- Be aware: `_StreamingResponse` objects don’t support `.body()`.
 
-python apps/mcp/mcp_client_demo.py --username admin --password secret
-
-Project Structure
-
-djproject/
-├── asgi.py       # ASGI mount combining Django + FastMCP
-├── settings.py   # Django settings + INSTALLED_APPS
-├── urls.py       # Django & DOT URL conf
-├── wsgi.py       # WSGI entrypoint
-├── manage.py     # Django CLI
-└── mcp_app/      # FastMCP integration
-    ├── auth_basic.py      # Basic HTTP auth middleware
-    ├── auth_middleware.py # Combined OAuth2 + session middleware
-    ├── auth_session.py    # Session-only middleware
-    ├── mcp_server.py     # FastMCP tool definitions
-    ├── metadata.py       # OAuth discovery endpoints
-    └── management/commands/
-        ├── mcp_inspect.py
-        ├── mcp_oauth_admin.py
-        └── run_mcp.py
-
-Tests
-
-Add your Django TestCases under each app’s tests.py and run:
-
-python manage.py test
-
+---
 License
 
 This project is licensed under the MIT License. Feel free to adapt and extend for your own needs.
