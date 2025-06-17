@@ -1,4 +1,8 @@
+# views.py
 import logging
+import atexit
+import os
+import signal
 import subprocess
 import secrets
 import hashlib
@@ -27,6 +31,20 @@ INSPECTOR_UI   = "http://127.0.0.1:6274/"
 REDIRECT_URI   = INSPECTOR_UI + "auth/callback"
 SCOPE          = "read write"
 
+
+def kill_processes_on_ports(ports):
+    for port in ports:
+        try:
+            result = subprocess.check_output(["lsof", "-i", f":{port}", "-t"], stderr=subprocess.DEVNULL)
+            pids = result.decode().strip().split("\n")
+            for pid in pids:
+                try:
+                    os.kill(int(pid), signal.SIGTERM)
+                    print(f"Killed PID {pid} on port {port}")
+                except ProcessLookupError:
+                    print(f"Process {pid} not found.")
+        except subprocess.CalledProcessError:
+            print(f"No process found on port {port}")
 
 def generate_pkce_pair():
     verifier = secrets.token_urlsafe(64)[:128]
@@ -128,15 +146,17 @@ def mcp_finalize(request):
         if not resp.ok:
             logger.error(f"Token exchange error: {resp.status_code} {resp.text}")
             return render(request, 'mcp_error.html', {'error': 'Token exchange failed.'})
-        token = resp.json().get('access_token')
-        logger.info(f"Access token: {token}")
+        bearer_token = resp.json().get('access_token')
+        logger.info(f"Access token: {bearer_token}")
 
+        kill_processes_on_ports([6274, 6277])
+            
         # Launch the Inspector CLI
         cmd = [
             'npx', '@modelcontextprotocol/inspector', INSPECTOR_HTTP,
             '--transport', 'streamable-http',
             '--header', 'Accept:application/json, text/event-stream',
-            '--header', f'Authorization: Bearer {token}',
+            '--header', f'Authorization: Bearer {bearer_token}',
             '--auth-url', AUTH_URL,
             '--token-url', TOKEN_URL,
             '--introspect', INTROSPECT_URL,
@@ -147,13 +167,20 @@ def mcp_finalize(request):
         if client_secret:
             cmd += ['--client-secret', client_secret]
 
-        # 1) Spawn the Inspector CLI
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        # Spawn the Inspector in its own session (so we can kill the whole group):
+        logger.info("Spawning Inspector CLI: %s", " ".join(cmd))
+        _inspector_proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            start_new_session=True  # <-- puts it into a new process group
+        )
 
         # 2) Capture the MCP_PROXY_AUTH_TOKEN from the printed URL
         proxy_token = None
         token_re    = re.compile(r"MCP_PROXY_AUTH_TOKEN=([0-9a-f]+)")
-        for line in proc.stdout:
+        for line in _inspector_proc.stdout:
             logger.info("Inspector CLI: %s", line.rstrip())
             m = token_re.search(line)
             if m:
@@ -170,7 +197,7 @@ def mcp_finalize(request):
         # 3) Render the “launched” page with that token embedded in the link
         return render(request, "mcp_launched.html", {
             "inspector_ui": INSPECTOR_UI,      # e.g. http://127.0.0.1:6274/
-            'bearer_token': token,
+            'bearer_token': bearer_token,
             'proxy_token': proxy_token,
         })
 

@@ -41,7 +41,10 @@ class CombinedAuthMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method
         accept = request.headers.get("accept", "")
-        proxy_token = request.headers.get("x-mcp-proxy-session-token")
+        proxy_token = (
+            request.headers.get("x-mcp-proxy-session-token")
+            or request.query_params.get("mcp_proxy_session_token")
+        )
 
         # 1) Trust proxy-authenticated requests
         if proxy_token:
